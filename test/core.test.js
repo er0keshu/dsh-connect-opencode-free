@@ -206,7 +206,12 @@ test('buildProviderEntry sizes each model and the route default from the catalog
   const big = entry.models.find((m) => m.id === 'big-pickle')
   assert.equal(big.contextWindow, 200000)
   assert.equal(big.maxTokens, 32000)
-  assert.equal(entry.defaultContextWindow, 1000000)
+  // 路由默认描述「典型模型」，不是列表里最大的那个：取中位数后不再被单个
+  // 1M 上下文的条目拉满，否则小模型的压缩阈值会按它根本不存在的窗口推导。
+  const windows = entry.models.map((m) => m.contextWindow).sort((a, b) => a - b)
+  const mid = Math.floor(windows.length / 2)
+  const expected = windows.length % 2 === 0 ? Math.round((windows[mid - 1] + windows[mid]) / 2) : windows[mid]
+  assert.equal(entry.defaultContextWindow, expected)
   assert.equal(entry.compat.supportsReasoningEffort, true)
 })
 
